@@ -1,0 +1,199 @@
+{
+  "nbformat": 4,
+  "nbformat_minor": 0,
+  "metadata": {
+    "colab": {
+      "provenance": [],
+      "authorship_tag": "ABX9TyMCem7i+rdfgfj/svFZCD+n",
+      "include_colab_link": true
+    },
+    "kernelspec": {
+      "name": "python3",
+      "display_name": "Python 3"
+    },
+    "language_info": {
+      "name": "python"
+    }
+  },
+  "cells": [
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "view-in-github",
+        "colab_type": "text"
+      },
+      "source": [
+        "<a href=\"https://colab.research.google.com/github/Panachai-spec007/dataviz2025/blob/main/HW4(%E0%B8%81%E0%B8%A5%E0%B8%B8%E0%B9%88%E0%B8%A1)\" target=\"_parent\"><img src=\"https://colab.research.google.com/assets/colab-badge.svg\" alt=\"Open In Colab\"/></a>"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "# **HW 4 (group) ยอดรวมทั้ง 5 เดือน เมืองไหนมีจำนวนผู้ถูกเรียกค้นที่เป็นคน Asia น้อยที่สุด และ มากที่สุด**"
+      ],
+      "metadata": {
+        "id": "aE9gy3BKU_re"
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "from google.colab import drive\n",
+        "import os\n",
+        "import pandas as pd"
+      ],
+      "metadata": {
+        "id": "UVtceXT7WSGX"
+      },
+      "execution_count": 4,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "drive.mount('/content/drive')"
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "kaF0yxhyWWYc",
+        "outputId": "dc3a28bb-6663-4a41-c61c-f3ac3b7daab4"
+      },
+      "execution_count": 8,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "Drive already mounted at /content/drive; to attempt to forcibly remount, call drive.mount(\"/content/drive\", force_remount=True).\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "# ฟังก์ชันอ่านข้อมูลจากทุกโฟลเดอร์\n",
+        "def read_all_data(base_path):\n",
+        "    all_dfs = []\n",
+        "    months = os.listdir(base_path)\n",
+        "\n",
+        "    for month in months:\n",
+        "        month_path = os.path.join(base_path, month)\n",
+        "        if os.path.isdir(month_path):  # ตรวจว่าเป็นโฟลเดอร์จริง ๆ\n",
+        "            files = os.listdir(month_path)\n",
+        "            for file in files:\n",
+        "                if 'stop-and-search' in file and file.endswith('.csv'):\n",
+        "                    filepath = os.path.join(month_path, file)\n",
+        "                    df = pd.read_csv(filepath)\n",
+        "                    city = file.replace('-stop-and-search.csv', '').split('-', 2)[-1]\n",
+        "                    df['Police Force'] = city\n",
+        "                    all_dfs.append(df)\n",
+        "\n",
+        "    return all_dfs\n",
+        "\n",
+        "# ฟังก์ชันนับจำนวนคนเชื้อสายเอเชีย\n",
+        "def count_asian_people(all_dfs):\n",
+        "    asian_counts = {}\n",
+        "\n",
+        "    for df in all_dfs:\n",
+        "        for i in range(len(df)):\n",
+        "            row = df.iloc[i]\n",
+        "            ethnicity = str(row.get('Self-defined ethnicity', ''))\n",
+        "            if 'Asian' in ethnicity:\n",
+        "                city = row['Police Force']\n",
+        "                if city not in asian_counts:\n",
+        "                    asian_counts[city] = 0\n",
+        "                asian_counts[city] += 1\n",
+        "\n",
+        "    return asian_counts\n",
+        "\n",
+        "# เรียกใช้\n",
+        "base_path = '/content/drive/MyDrive/Dataviz2025/Data'\n",
+        "dataframes = read_all_data(base_path)\n",
+        "counts = count_asian_people(dataframes)\n",
+        "\n",
+        "# หามากที่สุดและน้อยที่สุด\n",
+        "if counts:\n",
+        "    # หาค่ามากที่สุด/น้อยที่สุด\n",
+        "    most_city = max(counts, key=counts.get)\n",
+        "    fewest_city = min(counts, key=counts.get)\n",
+        "\n",
+        "    print(\"\\n=== รายงานการเรียกค้นผู้มีเชื้อสายเอเชีย (รวม 5 เดือน) ===\\n\")\n",
+        "\n",
+        "    # เรียงลำดับจากมากไปน้อย และแสดงพร้อมเลขลำดับ\n",
+        "    for i, city in enumerate(sorted(counts, key=counts.get, reverse=True), start=1):\n",
+        "        print(f\"{i:>2}. {city.ljust(20)}: {counts[city]:,} คน\")\n",
+        "\n",
+        "    print(\"\\n====== สรุป ======\")\n",
+        "    print(f\" มากที่สุด  : {most_city} ({counts[most_city]:,} คน)\")\n",
+        "    print(f\" น้อยที่สุด : {fewest_city} ({counts[fewest_city]:,} คน)\")\n",
+        "else:\n",
+        "    print(\"ไม่พบข้อมูลที่เกี่ยวข้องกับผู้มีเชื้อสายเอเชีย\")\n",
+        "\n"
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "Du3Rb8huWQLg",
+        "outputId": "56b4d9e0-c9b8-4d56-ee5f-fc3b98de2a77"
+      },
+      "execution_count": 7,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "\n",
+            "=== รายงานการเรียกค้นผู้มีเชื้อสายเอเชีย (รวม 5 เดือน) ===\n",
+            "\n",
+            " 1. west-midlands       : 2,104 คน\n",
+            " 2. metropolitan        : 2,033 คน\n",
+            " 3. lancashire          : 1,301 คน\n",
+            " 4. thames-valley       : 718 คน\n",
+            " 5. west-yorkshire      : 537 คน\n",
+            " 6. btp                 : 524 คน\n",
+            " 7. south-yorkshire     : 443 คน\n",
+            " 8. merseyside          : 361 คน\n",
+            " 9. bedfordshire        : 322 คน\n",
+            "10. hampshire           : 275 คน\n",
+            "11. leicestershire      : 226 คน\n",
+            "12. northumbria         : 209 คน\n",
+            "13. staffordshire       : 205 คน\n",
+            "14. hertfordshire       : 182 คน\n",
+            "15. essex               : 170 คน\n",
+            "16. kent                : 162 คน\n",
+            "17. surrey              : 152 คน\n",
+            "18. cheshire            : 149 คน\n",
+            "19. cleveland           : 125 คน\n",
+            "20. cambridgeshire      : 120 คน\n",
+            "21. cumbria             : 94 คน\n",
+            "22. south-wales         : 91 คน\n",
+            "23. west-mercia         : 85 คน\n",
+            "24. city-of-london      : 84 คน\n",
+            "25. derbyshire          : 83 คน\n",
+            "26. sussex              : 82 คน\n",
+            "27. nottinghamshire     : 61 คน\n",
+            "28. northamptonshire    : 58 คน\n",
+            "29. avon-and-somerset   : 54 คน\n",
+            "30. warwickshire        : 46 คน\n",
+            "31. devon-and-cornwall  : 35 คน\n",
+            "32. gloucestershire     : 27 คน\n",
+            "33. dyfed-powys         : 24 คน\n",
+            "34. suffolk             : 22 คน\n",
+            "35. north-wales         : 19 คน\n",
+            "36. dorset              : 18 คน\n",
+            "37. norfolk             : 10 คน\n",
+            "38. durham              : 5 คน\n",
+            "\n",
+            "====== สรุป ======\n",
+            " มากที่สุด  : west-midlands (2,104 คน)\n",
+            " น้อยที่สุด : durham (5 คน)\n"
+          ]
+        }
+      ]
+    }
+  ]
+}
